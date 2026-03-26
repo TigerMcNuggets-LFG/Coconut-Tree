@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COCONUT_PROTOCOL_3_Enter_The_Coconut</title>
+    <title>COCONUT_PROTOCOL_ADV</title>
     <style>
         body {
             margin: 0;
@@ -23,9 +23,15 @@
             max-width: 95vw;
             max-height: 70vh;
         }
-        #ui {
-            margin-top: 20px;
-            text-align: center;
+        #ui { margin-top: 20px; text-align: center; }
+        .menu-overlay {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 40px;
+            border: 2px solid #00FF00;
         }
         button {
             background: #000;
@@ -37,10 +43,8 @@
             cursor: pointer;
             text-transform: uppercase;
         }
-        button:active {
-            background: #00FF00;
-            color: #000;
-        }
+        button:active { background: #00FF00; color: #000; }
+        .hidden { display: none !important; }
         .crt-overlay {
             position: fixed;
             top: 0; left: 0; bottom: 0; right: 0;
@@ -53,11 +57,18 @@
 <body>
     <div class="crt-overlay"></div>
     <div id="status">SYS_STATUS: READY</div>
+    
+    <div id="startScreen" class="menu-overlay">
+        <h1 style="margin-top:0">PROTOCOL_SELECT</h1>
+        <button onclick="startGame('FREE')">FREE PLAY</button>
+        <button onclick="startGame('ADVENTURE')">ADVENTURE MODE</button>
+    </div>
+
     <canvas id="gameCanvas" width="400" height="500"></canvas>
     
-    <div id="ui">
+    <div id="ui" class="hidden">
         <button id="actionBtn">DEPLOY UMBRELLA</button>
-        <p id="msg">PRESS TO START</p>
+        <p id="msg">SURVIVE</p>
     </div>
 
 <script>
@@ -66,23 +77,37 @@
     const btn = document.getElementById('actionBtn');
     const msg = document.getElementById('msg');
     const status = document.getElementById('status');
+    const startScreen = document.getElementById('startScreen');
+    const ui = document.getElementById('ui');
 
-    let gameActive = false;
+    let gameState = 'START'; // START, PLAYING, WIN_ANIM, WIN_SCREEN
+    let gameMode = 'FREE';
     let score = 0;
-    // The player is now at x=300
-    let coconut = { x: 300, y: 100, falling: false, speed: 0 };
+    
+    let person = { x: 300, y: 400, onUnicorn: false };
+    let coconut = { x: 300, y: 100, falling: false, speed: 6.5 };
+    let unicorn = { x: -100, y: 430, active: false, speed: 3 };
+    
     let umbrellaOpen = false;
     let spawnTimer = 0;
     let umbrellaTimer = 0;
 
-    function resetGame() {
-        gameActive = true;
+    function startGame(mode) {
+        gameMode = mode;
+        gameState = 'PLAYING';
         score = 0;
+        person = { x: 300, y: 400, onUnicorn: false };
+        unicorn = { x: -100, y: 430, active: false, speed: 3 };
+        startScreen.classList.add('hidden');
+        ui.classList.remove('hidden');
+        resetCoconuts();
+    }
+
+    function resetCoconuts() {
         coconut.falling = false;
         coconut.y = 100;
-        spawnTimer = Date.now() + Math.random() * 4000 + 1000;
-        msg.innerText = "SURVIVE";
-        status.innerText = "SYS_STATUS: ACTIVE";
+        spawnTimer = Date.now() + Math.random() * 3000 + 1000;
+        status.innerText = `SYS_STATUS: ${gameMode}_MODE`;
     }
 
     function draw() {
@@ -91,65 +116,73 @@
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 2;
 
-        // --- DRAW LEANING PALM TREE ---
-        ctx.beginPath();
-        // Trunk starts right and leans left
-        ctx.moveTo(380, 450); 
-        ctx.bezierCurveTo(380, 300, 350, 150, 300, 100);
-        ctx.stroke();
-
-        // Detailed Fronds (Leaves)
-        const frondPoints = [[-50, -20], [-40, 20], [40, -10], [10, 40], [-20, -40]];
-        frondPoints.forEach(p => {
+        if (gameState !== 'WIN_SCREEN') {
+            // Draw Tree
             ctx.beginPath();
-            ctx.moveTo(300, 100);
-            ctx.quadraticCurveTo(300 + p[0]/2, 100 + p[1]/2, 300 + p[0], 100 + p[1]);
+            ctx.moveTo(380, 450); 
+            ctx.bezierCurveTo(380, 300, 350, 150, 300, 100);
             ctx.stroke();
-        });
+            [[-50, -20], [-40, 20], [40, -10], [10, 40], [-20, -40]].forEach(p => {
+                ctx.beginPath();
+                ctx.moveTo(300, 100);
+                ctx.quadraticCurveTo(300 + p[0]/2, 100 + p[1]/2, 300 + p[0], 100 + p[1]);
+                ctx.stroke();
+            });
 
-        // --- DRAW PERSON (Positioned at x=300) ---
-        const px = 300;
-        const py = 400;
-        ctx.beginPath();
+            // Draw Unicorn
+            if (unicorn.active) {
+                const ux = unicorn.x;
+                const uy = unicorn.y;
+                ctx.beginPath();
+                ctx.rect(ux, uy, 60, 30); // Body
+                ctx.moveTo(ux + 60, uy); ctx.lineTo(ux + 75, uy - 20); // Neck
+                ctx.moveTo(ux + 75, uy - 20); ctx.lineTo(ux + 85, uy - 15); // Head
+                ctx.moveTo(ux + 75, uy - 20); ctx.lineTo(ux + 80, uy - 35); // HORN
+                ctx.moveTo(ux, uy + 30); ctx.lineTo(ux - 10, uy + 50); // L-Leg
+                ctx.moveTo(ux + 60, uy + 30); ctx.lineTo(ux + 70, uy + 50); // R-Leg
+                ctx.stroke();
+            }
 
-        // 1. The Head
-        ctx.arc(px, py, 10, 0, Math.PI * 2); 
-
-        // 2. The Sunhat
-        ctx.moveTo(px - 20, py - 10); // Start Brim
-        ctx.lineTo(px + 20, py - 10); // End Brim
-        ctx.moveTo(px + 10, py - 10);
-        ctx.arc(px, py - 10, 10, Math.PI, 0); // Hat Crown
-
-        // 3. The Body & Limbs
-        ctx.moveTo(px, py + 10); ctx.lineTo(px, py + 50); // Body
-        ctx.moveTo(px, py + 20); ctx.lineTo(px - 20, py + 40); // Left Arm
-        ctx.moveTo(px, py + 20); ctx.lineTo(px + 20, py + 40); // Right Arm
-        ctx.moveTo(px, py + 50); ctx.lineTo(px - 15, py + 80); // Left Leg
-        ctx.moveTo(px, py + 50); ctx.lineTo(px + 15, py + 80); // Right Leg
-
-        ctx.stroke();
-
-        // --- DRAW UMBRELLA ---
-        if (umbrellaOpen) {
+            // Draw Person
+            const px = person.x;
+            const py = person.y;
             ctx.beginPath();
-            ctx.arc(px, py - 20, 40, Math.PI, 0); // Umbrella top
-            ctx.lineTo(px, py - 20);
-            ctx.closePath();
+            ctx.arc(px, py, 10, 0, Math.PI * 2); // Head
+            ctx.moveTo(px - 20, py - 10); ctx.lineTo(px + 20, py - 10); // Brim
+            ctx.arc(px, py - 10, 10, Math.PI, 0); // Hat
+            ctx.moveTo(px, py + 10); ctx.lineTo(px, py + 50); // Body
+            ctx.moveTo(px, py + 20); ctx.lineTo(px - 20, py + 40); // Arms
+            ctx.moveTo(px, py + 20); ctx.lineTo(px + 20, py + 40);
+            ctx.moveTo(px, py + 50); ctx.lineTo(px - 15, py + 80); // Legs
+            ctx.moveTo(px, py + 50); ctx.lineTo(px + 15, py + 80);
             ctx.stroke();
-            ctx.moveTo(px, py - 20); ctx.lineTo(px, py); // Handle
-            ctx.stroke();
+
+            // Draw Umbrella
+            if (umbrellaOpen) {
+                ctx.beginPath();
+                ctx.arc(px, py - 20, 40, Math.PI, 0);
+                ctx.lineTo(px, py - 20); ctx.closePath();
+                ctx.stroke();
+                ctx.moveTo(px, py - 20); ctx.lineTo(px, py);
+                ctx.stroke();
+            }
+
+            // Draw Coconut
+            if (coconut.falling && gameState === 'PLAYING') {
+                ctx.beginPath();
+                ctx.arc(coconut.x, coconut.y, 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
 
-        // --- DRAW COCONUT ---
-        if (coconut.falling || !gameActive) {
-            ctx.beginPath();
-            ctx.arc(coconut.x, coconut.y, 8, 0, Math.PI * 2);
-            ctx.stroke();
+        if (gameState === 'WIN_SCREEN') {
+            ctx.font = "40px 'Courier New'";
+            ctx.textAlign = "center";
+            ctx.strokeText("YOU WIN", canvas.width/2, canvas.height/2);
         }
 
-        // --- DRAW SCORE ---
         ctx.font = "16px 'Courier New'";
+        ctx.textAlign = "left";
         ctx.strokeText(`SUCCESS_LOG: ${score}`, 10, 30);
 
         update();
@@ -157,51 +190,63 @@
     }
 
     function update() {
-        if (!gameActive) return;
-
-        if (!coconut.falling && Date.now() > spawnTimer) {
-            coconut.falling = true;
-            coconut.y = 100;
-            coconut.speed = 6.5; // Adjusted for ~1sec fall distance
-        }
-
-        if (coconut.falling) {
-            coconut.y += coconut.speed;
-            
-            // Collision with Umbrella
-            if (coconut.y > 340 && coconut.y < 365) {
-                if (umbrellaOpen) {
+        if (gameState === 'PLAYING') {
+            if (!coconut.falling && Date.now() > spawnTimer) {
+                coconut.falling = true;
+                coconut.y = 100;
+            }
+            if (coconut.falling) {
+                coconut.y += coconut.speed;
+                if (coconut.y > 340 && coconut.y < 365 && umbrellaOpen) {
                     coconut.falling = false;
                     score++;
-                    spawnTimer = Date.now() + Math.random() * 4000 + 1000;
+                    spawnTimer = Date.now() + Math.random() * 3000 + 1000;
+                    if (gameMode === 'ADVENTURE' && score >= 10) {
+                        gameState = 'WIN_ANIM';
+                        unicorn.active = true;
+                    }
+                }
+                if (coconut.y > 390) {
+                    gameState = 'START';
+                    startScreen.classList.remove('hidden');
+                    ui.classList.add('hidden');
                 }
             }
+        }
 
-            // Collision with Person
-            if (coconut.y > 390) {
-                gameActive = false;
-                msg.innerText = "CRITICAL_FAILURE: REBOOT REQUIRED";
-                status.innerText = "SYS_STATUS: OFFLINE";
+        if (gameState === 'WIN_ANIM') {
+            if (!person.onUnicorn) {
+                unicorn.x += unicorn.speed;
+                if (unicorn.x >= person.x - 30) {
+                    person.onUnicorn = true;
+                }
+            } else {
+                unicorn.x += 4;
+                unicorn.y -= 3;
+                person.x = unicorn.x + 30;
+                person.y = unicorn.y - 40;
+                if (unicorn.x > canvas.width + 100) {
+                    gameState = 'WIN_SCREEN';
+                    ui.classList.add('hidden');
+                }
             }
         }
 
-        if (umbrellaOpen && Date.now() > umbrellaTimer) {
-            umbrellaOpen = false;
-        }
+        if (umbrellaOpen && Date.now() > umbrellaTimer) umbrellaOpen = false;
     }
 
-    // Touch and Click Handlers
     function handleAction() {
-        if (!gameActive) {
-            resetGame();
-        } else if (!umbrellaOpen) {
+        if (gameState === 'PLAYING' && !umbrellaOpen) {
             umbrellaOpen = true;
-            umbrellaTimer = Date.now() + 750;
+            umbrellaTimer = Date.now() + 1000;
+        } else if (gameState === 'WIN_SCREEN') {
+            gameState = 'START';
+            startScreen.classList.remove('hidden');
         }
     }
 
     btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
-    btn.addEventListener('mousedown', (e) => { handleAction(); });
+    btn.addEventListener('mousedown', handleAction);
 
     draw();
 </script>
