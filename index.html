@@ -131,18 +131,51 @@
 
             // Draw Unicorn
             if (unicorn.active) {
-                const ux = unicorn.x;
-                const uy = unicorn.y;
-                ctx.beginPath();
-                ctx.rect(ux, uy, 60, 30); // Body
-                ctx.moveTo(ux + 60, uy); ctx.lineTo(ux + 75, uy - 20); // Neck
-                ctx.moveTo(ux + 75, uy - 20); ctx.lineTo(ux + 85, uy - 15); // Head
-                ctx.moveTo(ux + 75, uy - 20); ctx.lineTo(ux + 80, uy - 35); // HORN
-                ctx.moveTo(ux, uy + 30); ctx.lineTo(ux - 10, uy + 50); // L-Leg
-                ctx.moveTo(ux + 60, uy + 30); ctx.lineTo(ux + 70, uy + 50); // R-Leg
+            const ux = unicorn.x;
+            const uy = unicorn.y;
+            ctx.beginPath();
+    
+                // --- Body (Curved back and belly) ---
+                ctx.moveTo(ux, uy + 10);
+                ctx.quadraticCurveTo(ux + 30, uy - 5, ux + 60, uy + 10); // Back
+                ctx.quadraticCurveTo(ux + 65, uy + 20, ux + 60, uy + 30); // Rear
+                ctx.quadraticCurveTo(ux + 30, uy + 40, ux, uy + 30);     // Belly
+                ctx.quadraticCurveTo(ux - 5, uy + 20, ux, uy + 10);      // Chest
+    
+                // --- Neck & Head ---
+                ctx.moveTo(ux + 55, uy + 5);
+                ctx.quadraticCurveTo(ux + 60, uy - 15, ux + 80, uy - 20); // Top of neck to head
+                ctx.lineTo(ux + 90, uy - 12); // Snout top
+                ctx.lineTo(ux + 85, uy - 5);  // Nose
+                ctx.quadraticCurveTo(ux + 75, uy + 5, ux + 60, uy + 15);  // Jaw to lower neck
+    
+                // --- The Horn (Double-lined for detail) ---
+                ctx.moveTo(ux + 76, uy - 18);
+                ctx.lineTo(ux + 85, uy - 40); // Tip
+                ctx.lineTo(ux + 82, uy - 16); // Back to head
+    
+                // --- Mane (Spiky retro lines) ---
+                ctx.moveTo(ux + 60, uy - 5);  ctx.lineTo(ux + 55, uy - 15);
+                ctx.moveTo(ux + 65, uy);      ctx.lineTo(ux + 60, uy - 10);
+                ctx.moveTo(ux + 70, uy + 5);  ctx.lineTo(ux + 65, uy - 5);
+    
+                // --- Flowing Tail ---
+                ctx.moveTo(ux, uy + 15);
+                ctx.quadraticCurveTo(ux - 25, uy + 5, ux - 20, uy + 45); // Outer curve
+                ctx.moveTo(ux, uy + 20);
+                ctx.quadraticCurveTo(ux - 15, uy + 15, ux - 10, uy + 40); // Inner curve
+
+                // --- Legs (Four distinct legs with joints) ---
+                // Back Legs
+                ctx.moveTo(ux + 5, uy + 35);  ctx.lineTo(ux + 2, uy + 45);  ctx.lineTo(ux + 5, uy + 55);
+                ctx.moveTo(ux + 15, uy + 38); ctx.lineTo(ux + 12, uy + 48); ctx.lineTo(ux + 15, uy + 55);
+                // Front Legs
+                ctx.moveTo(ux + 45, uy + 38); ctx.lineTo(ux + 48, uy + 48); ctx.lineTo(ux + 45, uy + 55);
+                ctx.moveTo(ux + 55, uy + 35); ctx.lineTo(ux + 58, uy + 45); ctx.lineTo(ux + 55, uy + 55);
+
                 ctx.stroke();
             }
-
+            
             // Draw Person
             const px = person.x;
             const py = person.y;
