@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COCONUT_PROTOCOL</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 2px solid #00FF00;
+            background: #000;
+            max-width: 95vw;
+            max-height: 70vh;
+        }
+        #ui {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            background: #000;
+            color: #00FF00;
+            border: 2px solid #00FF00;
+            padding: 15px 30px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        button:active {
+            background: #00FF00;
+            color: #000;
+        }
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-overlay"></div>
+    <div id="status">SYS_STATUS: READY</div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    
+    <div id="ui">
+        <button id="actionBtn">DEPLOY UMBRELLA</button>
+        <p id="msg">PRESS TO START</p>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const btn = document.getElementById('actionBtn');
+    const msg = document.getElementById('msg');
+    const status = document.getElementById('status');
+
+    let gameActive = false;
+    let coconut = { x: 280, y: 100, falling: false, speed: 0 };
+    let umbrellaOpen = false;
+    let spawnTimer = 0;
+    let umbrellaTimer = 0;
+
+    function resetGame() {
+        gameActive = true;
+        coconut.falling = false;
+        coconut.y = 100;
+        spawnTimer = Date.now() + Math.random() * 4000 + 1000;
+        msg.innerText = "SURVIVE";
+        status.innerText = "SYS_STATUS: ACTIVE";
+    }
+
+    function draw() {
+        // Clear screen
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#00FF00';
+        ctx.lineWidth = 2;
+
+        // Draw Tree (Retro Style)
+        ctx.beginPath();
+        ctx.moveTo(350, 450); ctx.lineTo(330, 100); // Trunk
+        ctx.moveTo(335, 120); ctx.lineTo(250, 80);  // Branch 1
+        ctx.moveTo(335, 120); ctx.lineTo(280, 150); // Branch 2
+        ctx.stroke();
+
+        // Draw Person
+        ctx.beginPath();
+        ctx.arc(100, 400, 10, 0, Math.PI * 2); // Head
+        ctx.moveTo(100, 410); ctx.lineTo(100, 450); // Body
+        ctx.moveTo(100, 420); ctx.lineTo(80, 440);  // Left Arm
+        ctx.moveTo(100, 420); ctx.lineTo(120, 440); // Right Arm
+        ctx.stroke();
+
+        // Draw Umbrella
+        if (umbrellaOpen) {
+            ctx.beginPath();
+            ctx.arc(100, 380, 40, Math.PI, 0); // Umbrella top
+            ctx.lineTo(100, 380);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.moveTo(100, 380); ctx.lineTo(100, 400); // Handle
+            ctx.stroke();
+        }
+
+        // Draw Coconut
+        if (coconut.falling || !gameActive) {
+            ctx.beginPath();
+            ctx.arc(coconut.x, coconut.y, 8, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        update();
+        requestAnimationFrame(draw);
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        // Spawning logic
+        if (!coconut.falling && Date.now() > spawnTimer) {
+            coconut.falling = true;
+            coconut.y = 100;
+            coconut.speed = 4; // Falls in ~1 second
+        }
+
+        // Falling logic
+        if (coconut.falling) {
+            coconut.y += coconut.speed;
+            
+            // Check Collision
+            if (coconut.y > 340 && coconut.y < 360) {
+                if (umbrellaOpen) {
+                    coconut.falling = false;
+                    coconut.y = 100;
+                    spawnTimer = Date.now() + Math.random() * 4000 + 1000;
+                }
+            }
+
+            // Hit Person
+            if (coconut.y > 390) {
+                gameActive = false;
+                msg.innerText = "CRITICAL_FAILURE: REBOOT REQUIRED";
+                status.innerText = "SYS_STATUS: OFFLINE";
+            }
+        }
+
+        // Umbrella timer
+        if (umbrellaOpen && Date.now() > umbrellaTimer) {
+            umbrellaOpen = false;
+        }
+    }
+
+    btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (!gameActive) {
+            resetGame();
+        } else if (!umbrellaOpen) {
+            umbrellaOpen = true;
+            umbrellaTimer = Date.now() + 1000;
+        }
+    });
+
+    // Handle clicks for desktop testing
+    btn.addEventListener('mousedown', () => {
+        if (!gameActive) resetGame();
+        else { umbrellaOpen = true; umbrellaTimer = Date.now() + 1000; }
+    });
+
+    draw();
+</script>
+</body>
+</html>
