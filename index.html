@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COCONUT_PROTOCOL</title>
+    <title>COCONUT_PROTOCOL_V2</title>
     <style>
         body {
             margin: 0;
@@ -68,13 +68,16 @@
     const status = document.getElementById('status');
 
     let gameActive = false;
-    let coconut = { x: 280, y: 100, falling: false, speed: 0 };
+    let score = 0;
+    // The player is now at x=300
+    let coconut = { x: 300, y: 100, falling: false, speed: 0 };
     let umbrellaOpen = false;
     let spawnTimer = 0;
     let umbrellaTimer = 0;
 
     function resetGame() {
         gameActive = true;
+        score = 0;
         coconut.falling = false;
         coconut.y = 100;
         spawnTimer = Date.now() + Math.random() * 4000 + 1000;
@@ -83,44 +86,58 @@
     }
 
     function draw() {
-        // Clear screen
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 2;
 
-        // Draw Tree (Retro Style)
+        // --- DRAW LEANING PALM TREE ---
         ctx.beginPath();
-        ctx.moveTo(350, 450); ctx.lineTo(330, 100); // Trunk
-        ctx.moveTo(335, 120); ctx.lineTo(250, 80);  // Branch 1
-        ctx.moveTo(335, 120); ctx.lineTo(280, 150); // Branch 2
+        // Trunk starts right and leans left
+        ctx.moveTo(380, 450); 
+        ctx.bezierCurveTo(380, 300, 350, 150, 300, 100);
         ctx.stroke();
 
-        // Draw Person
+        // Detailed Fronds (Leaves)
+        const frondPoints = [[-50, -20], [-40, 20], [40, -10], [10, 40], [-20, -40]];
+        frondPoints.forEach(p => {
+            ctx.beginPath();
+            ctx.moveTo(300, 100);
+            ctx.quadraticCurveTo(300 + p[0]/2, 100 + p[1]/2, 300 + p[0], 100 + p[1]);
+            ctx.stroke();
+        });
+
+        // --- DRAW PERSON (Positioned at x=300) ---
+        const px = 300;
+        const py = 400;
         ctx.beginPath();
-        ctx.arc(100, 400, 10, 0, Math.PI * 2); // Head
-        ctx.moveTo(100, 410); ctx.lineTo(100, 450); // Body
-        ctx.moveTo(100, 420); ctx.lineTo(80, 440);  // Left Arm
-        ctx.moveTo(100, 420); ctx.lineTo(120, 440); // Right Arm
+        ctx.arc(px, py, 10, 0, Math.PI * 2); // Head
+        ctx.moveTo(px, py + 10); ctx.lineTo(px, py + 50); // Body
+        ctx.moveTo(px, py + 20); ctx.lineTo(px - 20, py + 40); // Left Arm
+        ctx.moveTo(px, py + 20); ctx.lineTo(px + 20, py + 40); // Right Arm
         ctx.stroke();
 
-        // Draw Umbrella
+        // --- DRAW UMBRELLA ---
         if (umbrellaOpen) {
             ctx.beginPath();
-            ctx.arc(100, 380, 40, Math.PI, 0); // Umbrella top
-            ctx.lineTo(100, 380);
+            ctx.arc(px, py - 20, 40, Math.PI, 0); // Umbrella top
+            ctx.lineTo(px, py - 20);
             ctx.closePath();
             ctx.stroke();
-            ctx.moveTo(100, 380); ctx.lineTo(100, 400); // Handle
+            ctx.moveTo(px, py - 20); ctx.lineTo(px, py); // Handle
             ctx.stroke();
         }
 
-        // Draw Coconut
+        // --- DRAW COCONUT ---
         if (coconut.falling || !gameActive) {
             ctx.beginPath();
             ctx.arc(coconut.x, coconut.y, 8, 0, Math.PI * 2);
             ctx.stroke();
         }
+
+        // --- DRAW SCORE ---
+        ctx.font = "16px 'Courier New'";
+        ctx.strokeText(`SUCCESS_LOG: ${score}`, 10, 30);
 
         update();
         requestAnimationFrame(draw);
@@ -129,27 +146,25 @@
     function update() {
         if (!gameActive) return;
 
-        // Spawning logic
         if (!coconut.falling && Date.now() > spawnTimer) {
             coconut.falling = true;
             coconut.y = 100;
-            coconut.speed = 4; // Falls in ~1 second
+            coconut.speed = 6.5; // Adjusted for ~1sec fall distance
         }
 
-        // Falling logic
         if (coconut.falling) {
             coconut.y += coconut.speed;
             
-            // Check Collision
-            if (coconut.y > 340 && coconut.y < 360) {
+            // Collision with Umbrella
+            if (coconut.y > 340 && coconut.y < 365) {
                 if (umbrellaOpen) {
                     coconut.falling = false;
-                    coconut.y = 100;
+                    score++;
                     spawnTimer = Date.now() + Math.random() * 4000 + 1000;
                 }
             }
 
-            // Hit Person
+            // Collision with Person
             if (coconut.y > 390) {
                 gameActive = false;
                 msg.innerText = "CRITICAL_FAILURE: REBOOT REQUIRED";
@@ -157,27 +172,23 @@
             }
         }
 
-        // Umbrella timer
         if (umbrellaOpen && Date.now() > umbrellaTimer) {
             umbrellaOpen = false;
         }
     }
 
-    btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+    // Touch and Click Handlers
+    function handleAction() {
         if (!gameActive) {
             resetGame();
         } else if (!umbrellaOpen) {
             umbrellaOpen = true;
             umbrellaTimer = Date.now() + 1000;
         }
-    });
+    }
 
-    // Handle clicks for desktop testing
-    btn.addEventListener('mousedown', () => {
-        if (!gameActive) resetGame();
-        else { umbrellaOpen = true; umbrellaTimer = Date.now() + 1000; }
-    });
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
+    btn.addEventListener('mousedown', (e) => { handleAction(); });
 
     draw();
 </script>
